@@ -1,7 +1,7 @@
 package com.reactive.streams.demo;
 
-import com.reactive.streams.demo.publisher.TestPublisher;
-import com.reactive.streams.demo.subscriber.TestSubscriber;
+import com.reactive.streams.demo.test.publisher.TestPublisher;
+import com.reactive.streams.demo.test.subscriber.TestSubscriber;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.springframework.boot.CommandLineRunner;
