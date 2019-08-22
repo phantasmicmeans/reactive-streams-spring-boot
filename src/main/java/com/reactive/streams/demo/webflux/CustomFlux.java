@@ -1,4 +1,5 @@
 package com.reactive.streams.demo.webflux;
 
-public class Flux {
+public class CustomFlux {
+
 }

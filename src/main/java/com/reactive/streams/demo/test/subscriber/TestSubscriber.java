@@ -12,7 +12,6 @@ public class TestSubscriber implements Subscriber<Integer> {
     private Integer count;
     private final Integer DEMO_COUNT = 3;
     private Subscription subscription;
-
     public TestSubscriber() {}
 
     @Override
