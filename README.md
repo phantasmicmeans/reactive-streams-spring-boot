@@ -1,6 +1,15 @@
 REACTIVE STREAMS
 =================
 
+## Duality
+Iterable < ===== > Observable
+
+for - each는 iterable에서 사용할 수 있다. 즉 JAVA의 for-each는 컬렉션이 아닌 Iterable을 구현한 무언가를 넣는 것!
+
+## Observer Pattern
+
+## Reactive Streams - 표준 
+
 ### Publisher
 Publisher 인터페이스는 단 하나의 메소드를 정의한다. 
 - subscribe(Subscriber <? super Integer>) void
