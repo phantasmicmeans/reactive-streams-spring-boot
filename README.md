@@ -11,21 +11,51 @@ Iterable | Observable
 [iterator.next()] | [notifyObservers(arg)]
 
 ## Observer Pattern
+Observer Pattern에 2가지 문제가 있다.. 
+ 1. Data의 '끝'이라는 개념이 없다. 
+ 2. Error 처리.. Exception은 어떻게? 
+
+물론 많은 부분들이 있겠지만 위 2가지 요소를 더욱 보강한다는 전제가 Reactive Programming의 여러 기준 중 하나이다.
 
 ## Reactive Streams - 표준 
 
+**표준 Spec Document**
+- http://www.reactive-streams.org/
+
+**그 외 Document**
+- http://reactivex.io/
+- https://github.com/reactive-streams/reactive-streams-jvm
+
 ### Publisher
-Publisher 인터페이스는 단 하나의 메소드를 정의한다. 
-- subscribe(Subscriber <? super Integer>) void
+https://github.com/reactive-streams/reactive-streams-jvm에 따르면 
 
-Publisher 를 구현하는 클래스는 subscribe 메소드를 구현해야 한다. 이 메소드는 Subscriber 객체를 매개변수로 받아 Subscriber 의 onSubscribe() 메소드를 실행시킨다.
+A Publisher is a provider of a potentially unbounded number of sequenced elements, publishing them according to the demand received from its Subscriber(s).
+In response to a call to Publisher.subscribe(Subscriber). 라고 명시되어있다.
 
-### Subscriber 
+즉 Publisher는 시퀀셜한 element들을 제공하는 Provider이고, Subscriber의 demand에 따라 publish 한다. 이는 Observable과 동등한 의미로 보면 된다.
+Observable의 Observable.addObserver(observer)와 같은 의미로 Publisher는 Publisher.subscribe(Subcriber)를 활용해 Receiver를 정한다. 
+
+ 기준 | Observable | Publisher
+---------- | --------- | ---------
+Provider | O  | O
+Receiver | Observer | Subscriber
+Add Receiver | Observable.addObserver(ob) | Publisher.subscribe(sb) 
+
+### Subscriber    
 Subscribe 는 다음과 같은 메소드를 정의한다.
 - void onSubscribe(Subscription var1);
 - void onNext(T var1);
 - void onError(Throwable var1);
 - void onComplete();
+
+또한 Publisher가 Subscriber에게 전달하는 정보는 아래와 같은 protocol을 따른다.
+
+```java 
+onSubscribe onNext* (onError | onComplete)?
+```
+Subscriber는 onSubscribe(arg)를 통해 subscribe를 시작하고, onNext()를 통해 element를 수신한다.
+여기서 onNext* 는 0 ~ N(무한대)까지 호출 가능하다는 의미이다.
+마지막으로 (onError | onComplete)? 는 optional이다. 두가지 중 하나를 호출할 수 있고, 이 과정을 거치면 마치는 protocol이다.
 
 REACTOR FUX & MONO
 ==================
