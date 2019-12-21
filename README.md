@@ -2,9 +2,13 @@ REACTIVE STREAMS
 =================
 
 ## Duality
-Iterable < ===== > Observable
 
-for - each는 iterable에서 사용할 수 있다. 즉 JAVA의 for-each는 컬렉션이 아닌 Iterable을 구현한 무언가를 넣는 것!
+Iterable | Observable
+-------- | ----------
+[Iterable] | [Observable]
+[Pull] | [Push]
+[값을 끌어온다는 의미] | [값을 가져가라는 의미]
+[iterator.next()] | [notifyObservers(arg)]
 
 ## Observer Pattern
 
