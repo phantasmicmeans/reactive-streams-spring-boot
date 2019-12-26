@@ -1,4 +1,4 @@
-package com.reactive.streams.demo.toby;
+package com.reactive.streams.demo.toby.duality;
 
 import java.util.Arrays;
 import java.util.Iterator;
