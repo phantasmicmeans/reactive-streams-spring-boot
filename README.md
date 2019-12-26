@@ -57,6 +57,13 @@ Subscriber는 onSubscribe(arg)를 통해 subscribe를 시작하고, onNext()를 
 여기서 onNext* 는 0 ~ N(무한대)까지 호출 가능하다는 의미이다.
 마지막으로 (onError | onComplete)? 는 optional이다. 두가지 중 하나를 호출할 수 있고, 이 과정을 거치면 마치는 protocol이다.
 
+### Operator 
+일반적인 flow는 다음과 같다. **Publisher -> Data -> Subscriber**
+그러나 Publisher -> [Data1] -> Operator -> [Data2] -> Operator2 -> [Data3] -> Subscriber 처럼 Operator를 활용해 Subcriber에 도달하는 Data를 컨트롤 할 수 있다.
+쉽게 말해 Operator는 Data를 가공한다. JAVA8의 Stream 관련 메소드와 비슷한 의미를 가진다고 보면 다. 
+
+1. map ([Flow]: pub -> [Data1] -> mapPub -> [Data2] -> sub), **toby/operator/PubSub2.java에서 확인**
+
 REACTOR FUX & MONO
 ==================
 Reactor는 JVM 기반을 위한 Non-Blocking 라이브러리이며, Reactive Streams의 구현체. 
@@ -66,7 +73,7 @@ Flux와 Mono는 시퀀스를 제공하는 역할을 하며 Publisher 구현체�
 - Mono : 0 ~ 1개의 데이터 전달
 - Flux : 0 ~ N개의 데이터 전달
 
-FLUX
+FLUX````
 ====
 Publisher의 구현체중 하나로서, 0 ~ N개의 데이터를 전송한다. 기존 Publisher와 동일하게 각 전달마다 onNext()를 발생시킨다. 
 Flux는 추상클래스로 정의되어 있다. 
