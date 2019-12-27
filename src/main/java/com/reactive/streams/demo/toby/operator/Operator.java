@@ -6,6 +6,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,8 +28,40 @@ public class Operator {
         Publisher<Integer> mapPlusPubLambda = mapPubWithLambda(pub, fPlus);
         Publisher<Integer> mapMultiPubLambda = mapPubWithLambda(pub, fMulti);
 
+        Publisher<Integer> reducePub = reducePub(pub, 0, (a, b) -> a + b);
+        // 1,2,3,4,5
+        // 0->(0,1) -> 0 + 1 = 1
+        // 1->(1,2) -> 1 + 2 = 3
+        // 2->(2,3) -> 3 + 3 = 6 .
+        // ..
         Subscriber<Integer> subscriber = logsSub();
-        mapMultiPub.subscribe(subscriber);
+        reducePub.subscribe(subscriber);
+    }
+
+    private static Subscriber<Integer> logsSub() {
+        return new Subscriber<Integer>() {
+            @Override
+            public void onSubscribe(Subscription subscription) {
+                log.debug("onSubscribe");
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(Integer integer) {
+                log.debug("onNext:{}", integer);
+
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                log.debug("onError:{}", throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                log.debug("onComplete");
+            }
+        };
     }
 
     private static Publisher<Integer> mapPubWithLambda(Publisher<Integer> pub, Function<Integer, Integer> f) {
@@ -86,28 +119,23 @@ public class Operator {
         };
     }
 
-    private static Subscriber<Integer> logsSub() {
-        return new Subscriber<Integer>() {
+    private static Publisher<Integer> reducePub(Publisher<Integer> pub, int init, BiFunction<Integer, Integer, Integer> bf) {
+        return new Publisher<Integer>() {
             @Override
-            public void onSubscribe(Subscription subscription) {
-                log.debug("onSubscribe");
-                subscription.request(Long.MAX_VALUE);
-            }
+            public void subscribe(Subscriber<? super Integer> sub) {
+                pub.subscribe(new DelegateSub(sub) {
+                    int result = init;
+                    @Override
+                    public void onNext(Integer i) {
+                        result = bf.apply(result, i);
+                    }
 
-            @Override
-            public void onNext(Integer integer) {
-                log.debug("onNext:{}", integer);
-
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-                log.debug("onError:{}", throwable);
-            }
-
-            @Override
-            public void onComplete() {
-                log.debug("onComplete");
+                    @Override
+                    public void onComplete() {
+                        sub.onNext(result);
+                        sub.onComplete();
+                    }
+                });
             }
         };
     }
@@ -144,7 +172,7 @@ public class Operator {
                         try {
                             iter.forEach(ele -> subscriber.onNext(ele));
                             subscriber.onComplete();
-                        } catch (Throwable t) {
+                       } catch (Throwable t) {
                             subscriber.onError(t);
                         }
                     }
