@@ -60,18 +60,145 @@ Subscriber는 onSubscribe(arg)를 통해 subscribe를 시작하고, onNext()를 
 ### Operator 
 일반적인 flow는 다음과 같다. **Publisher -> Data -> Subscriber**
 그러나 Publisher -> [Data1] -> Operator -> [Data2] -> Operator2 -> [Data3] -> Subscriber 처럼 Operator를 활용해 Subcriber에 도달하는 Data를 컨트롤 할 수 있다.
-쉽게 말해 Operator는 Data를 가공한다. JAVA8의 Stream 관련 메소드와 비슷한 의미를 가진다고 보면 다. 
+쉽게 말해 Operator는 Data를 가공한다. JAVA8의 Stream 관련 메소드와 비슷한 의미를 가진다고 보면 된다. 
 
-1. map ([Flow]: pub -> [Data1] -> mapPub -> [Data2] -> sub), **toby/operator/PubSub2.java에서 확인**
+자세한 사항은 소스에서 확인하면 된다.
+**toby/operator/PubSub2.java에서 확인**
 
-REACTOR FUX & MONO
+아래에서 보게 될 Flux라는 Publisher에도 Operator를 활용한다.
+
+REACTOR FLUX & MONO
 ==================
-Reactor는 JVM 기반을 위한 Non-Blocking 라이브러리이며, Reactive Streams의 구현체. 
+- https://projectreactor.io/docs
 
-Flux와 Mono는 시퀀스를 제공하는 역할을 하며 Publisher 구현체이며, 이들의 차이는 시퀀스를 얼마나 전송하느냐에 따라 나뉜다.
+Reactor는 JVM 기반을 위한 Non-Blocking 라이브러리이며, Reactive Streams의 구현체.
+또한 유틸성 클래스로 Flux, Mono 라는 클래스 제공 하며 이는 위에서 설명한 Publiser 인터페이스를 구현.
+
+이들의 차이는 시퀀스를 얼마나 전송하느냐에 따라 나뉜다.
 
 - Mono : 0 ~ 1개의 데이터 전달
 - Flux : 0 ~ N개의 데이터 전달
+
+```java
+    public static void FluxTest() {
+        // Flux는 Publisher 인터페이스 구현체
+        Flux.<Integer> create(e -> {
+            IntStream.range(1, 10).forEach(ele -> e.next(ele));
+            e.complete();
+        })
+        .map(e -> e * 10) // map operator
+        .reduce(0, (a, b) -> a + b) // reduce operator
+        .subscribe(System.out::println);
+        // subscriber는 System.out.println 기능만 수행
+    }
+```
+FluxTest() 에서 Operator는 map, reduce 기능을 수행하고 있다. 이를 직접 Publisher, Subscriber로 구현하게 되면 아래와 같다.
+
+```java
+
+    public void PubSubTest() {
+
+        // 1 ~ 10 기본 publisher
+        Publisher<Integer> publisher = new Publisher<Integer>() {
+            @Override
+            public void subscribe(Subscriber<? super Integer> subscriber) {
+                subscriber.onSubscribe(new Subscription() {
+                    @Override
+                    public void request(long l) {
+                        IntStream.range(1, 10).forEach(ele -> subscriber.onNext(ele));
+                        subscriber.onComplete();
+                    }
+
+                    @Override
+                    public void cancel() {
+                    }
+                });
+            }
+        };
+
+        // 로깅 subscriber
+        Subscriber<Integer> subscriber = new Subscriber<Integer>() {
+            @Override
+            public void onSubscribe(Subscription subscription) {
+                subscription.request(10);
+            }
+            @Override
+            public void onNext(Integer i) {
+                System.out.println(i);
+            }
+            @Override
+            public void onError(Throwable throwable) { }
+            @Override
+            public void onComplete() { }
+        };
+
+        Publisher<Integer> mapPub = mapPublisher(publisher, e -> e * 10);
+        Publisher<Integer> reducePub = reducePublisher(mapPub, 0, (a, b) -> a + b);
+        reducePub.subscribe(subscriber);
+    }
+
+    // map Operator
+    public Publisher<Integer> mapPublisher (Publisher<Integer> pub, Function<Integer, Integer> f) {
+        return new Publisher<Integer>() {
+            @Override
+            public void subscribe(Subscriber<? super Integer> sub) {
+                pub.subscribe(new Subscriber<Integer>() {
+                    @Override
+                    public void onSubscribe(Subscription subscription) {
+                        sub.onSubscribe(subscription);
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        int next = f.apply(integer);
+                        sub.onNext(next); // map
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) { }
+
+                    @Override
+                    public void onComplete() {
+                        sub.onComplete();
+                    }
+                });
+            }
+        };
+    }
+
+    // reduce Operator
+    public Publisher<Integer> reducePublisher(Publisher<Integer> pub, int init, BiFunction<Integer, Integer, Integer> f) {
+        return new Publisher<Integer>() {
+            @Override
+            public void subscribe(Subscriber<? super Integer> subscriber) {
+                pub.subscribe(new Subscriber<Integer>() {
+                    int result = init;
+                    @Override
+                    public void onSubscribe(Subscription subscription) {
+                        subscriber.onSubscribe(subscription);
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        result = f.apply(result, integer);
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        subscriber.onNext(result);
+                        subscriber.onComplete();
+                    }
+                });
+            }
+        };
+    }
+```
+
+정리하자면 FluxTest()와 PubSubTest() 는 동일한 job을 실행한다. Flux를 사용하여 코드를 줄일 수 있는 이유는 Publisher 인터페이스를 구현해놓은 클래스이기 때문이다. 
 
 FLUX````
 ====
