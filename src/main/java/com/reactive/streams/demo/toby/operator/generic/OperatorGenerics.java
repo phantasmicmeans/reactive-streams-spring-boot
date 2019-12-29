@@ -17,15 +17,17 @@ import java.util.stream.Stream;
 public class OperatorGenerics {
     public static void main(String[] args) {
         Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-        Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
-        mapPub.subscribe(logsSub());
+        Publisher<Integer> mapPub = mapPub(pub, s -> s * 10); // operator
+        Publisher<String> mapStrPub = mapPub(pub, s -> "[" + s + "]"); // operator
+        mapStrPub.subscribe(logsSub());
     }
 
-    private static <T> Publisher<T> mapPub(Publisher<T> pub, Function<T, T> f) {
-        return new Publisher<T>() {
+    // T -> R
+    private static <T, R> Publisher<R> mapPub(Publisher<T> pub, Function<T, R> f) {
+        return new Publisher<R>() {
             @Override
-            public void subscribe(Subscriber<? super T> sub) {
-                pub.subscribe(new DelegateSubGeneric<T>(sub){
+            public void subscribe(Subscriber<? super R> sub) {
+                pub.subscribe(new DelegateSubGeneric<T, R>(sub){
                     @Override
                     public void onNext(T t) {
                         sub.onNext(f.apply(t));

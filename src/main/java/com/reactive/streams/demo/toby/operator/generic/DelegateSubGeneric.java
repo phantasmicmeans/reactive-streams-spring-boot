@@ -6,9 +6,9 @@ import org.reactivestreams.Subscription;
 /**
  * [phantasmicmeans] created on 27/12/2019
  */
-public class DelegateSubGeneric<T> implements Subscriber<T> {
+public class DelegateSubGeneric<T, R> implements Subscriber<T> {
     Subscriber sub;
-    public DelegateSubGeneric(Subscriber<? super T> sub) {
+    public DelegateSubGeneric(Subscriber<? super R> sub) {
         this.sub = sub;
     }
     @Override
