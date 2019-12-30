@@ -1,7 +1,6 @@
 package com.reactive.streams.demo.toby.reactor;
 
-import com.reactive.streams.demo.toby.pubsub.PubSub;
-import com.sun.org.apache.xml.internal.resolver.helpers.PublicId;
+
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
