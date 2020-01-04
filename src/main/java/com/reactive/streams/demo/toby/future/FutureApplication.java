@@ -21,7 +21,6 @@ import org.springframework.web.context.request.async.DeferredResult;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-@EnableAsync
 @SpringBootApplication
 public class FutureApplication {
     @RestController
@@ -34,7 +33,6 @@ public class FutureApplication {
         @GetMapping("/rest")
         public DeferredResult<String> rest(int idx) {
             DeferredResult<String> dr = new DeferredResult<>();
-
             toCF(rt.getForEntity(URL1, String.class,"h" + idx))
                     .thenCompose(s -> toCF(rt.getForEntity(URL2, String.class, s.getBody())))
                     .thenCompose(s2 -> toCF(myService.work(s2.getBody())))
@@ -110,7 +108,7 @@ public class FutureApplication {
 
     public static void main(String[] args) {
         //System.setProperty("reactor.ipc.netty.workerCount", "2");
-        //System.setProperty("reactor.ipc.netty.pool.maxConnectioins", "2000");
+        //System.setProperty("reactor.ipc.netty.pool.maxConnections", "2000");
         SpringApplication.run(FutureApplication.class, args);
     }
 }
