@@ -200,7 +200,127 @@ FluxTest() 에서 Operator는 map, reduce 기능을 수행하고 있다. 이를 
 
 정리하자면 FluxTest()와 PubSubTest() 는 동일한 job을 실행한다. Flux를 사용하여 코드를 줄일 수 있는 이유는 Publisher 인터페이스를 구현해놓은 클래스이기 때문이다. 
 
-FLUX````
+Scheduler
+=========
+publisher와 subscriber의 동작이 같은 스레드에서 일어날 경우, 병목을 맞이한다. 수행시간이 긴 api를 호출하는 경우가 이에 해당한다.
+심각한 경우 웹 서버의 모든 스레드가 점유되는 경우가 있을 수 있다. 
+
+보통의 경우 스레드 풀 혹은 running thread를 생성하여 비동기로 이를 처리하곤 하는데, 이러한 역할을 하는 것이 스케줄러이다.
+
+### subscribeOn
+위와 같은 경우 io에 오랜 시간이 소요된다. 이러한 경우 **subscribeOn**이라는 스케줄러를 살펴보자
+- > https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html
+
+subscriberOn의 flow와 description을 확인하면 된다. 이렇게 정의되어 있다. **Typically used for slow publisher e.g., blocking IO, fast consumer(s) scenarios.**
+```java 
+    flux.subscribeOn(Schedulers.single()).subscribe() 
+```
+subscribeOn 스케줄러는 subcriber를 별도의 레드에서 실행한다. 
+
+### publishOn
+publishOn은 위와 조금 다르다. 
+```java
+flux.publishOn(Schedulers.sigle()).subscribe()
+```
+**Typically used for fast publisher, slow consumer(s) scenario.** 라고 명시되어 있다.
+publishing 되는 data의 속도는 빠르나 이를 처리하는 subscriber 의 속도가 느린 경우 (ex. db save 등)는 publishOn을 활용하면 된다. 
+
+data를 받아서 처리하는 쪽을 별개의 스레드에서 실행한다. 이 말은 onNext, onError, onComplete 등의 역할이 별도의 스레드에서 실행된다는 말이다.
+
+코드를 보면 subscribeOn, publishOn에 대해 더 잘 이해할 수 있다.
+
+```java
+        Publisher<Integer> pub = sub -> {
+            sub.onSubscribe(new Subscription() {
+                @Override
+                public void request(long l) {
+                    log.debug("request()");
+                    sub.onNext(1);
+                    sub.onNext(2);
+                    sub.onNext(3);
+                    sub.onNext(4);
+                    sub.onNext(5 );
+                    sub.onComplete();
+
+                }
+
+                @Override
+                public void cancel() {
+
+                }
+            });
+        }; 
+
+        pub.subscribe(new Subscriber<Integer>() {
+            @Override
+            public void onSubscribe(Subscription subscription) {
+                log.info("onSubscribe");
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(Integer integer) {
+                log.debug("onNext: {}", integer);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                log.debug(throwable.getMessage());
+            }
+
+            @Override
+            public void onComplete() {
+                log.debug("onComplete");
+            }
+        });
+
+        System.out.println("EXIT");
+    }
+```
+기본적인 publisher, subscriber 위와 같다. publisher는 5개의 data를 제공하고, subcriber 는 이를 처리하는 간단한 로직이다. 먼저 subscribeOn 부터 보자. 
+
+```java
+        Publisher<Integer> subOnPub = sub -> {
+            ExecutorService ex = Executors.newSingleThreadExecutor();
+            ex.execute( () -> pub.subscribe(sub)); // 이 과정을 새로운 스레드로
+        };
+```
+위는 Operator 개념으로 publisher를 두고 subcribeOn, publishOn의 역할을 맡기는 코드이다. 위 subOnPub 메소드를 보면, 새로운 싱글 스레드를 통해 subscriber가 실행된다.
+subscriber는 pub.subscribe(subscriber)가 아닌 위에서 정의한 Operator를 통해 subOnPub.subscribe(subscriber)를 실행하는 형태이다.
+결국 subscriber는 subOnPub에 의해 새로운 스레드에서 실행되고, 결론적으로 subscribe를 할 때에 별도의 스레드에서 실행하게 한다. 
+
+publishOn은 data의 제공 속도에 비해 subscriber에서의 data 처리가 느린 경우 활용한다고 하였다. 예를 들어 onNext, onError 등의 개별 data 처리가 느릴 경우 아래처럼 동작시킨다.
+```java
+        Publisher<Integer> pubOnPub = sub -> {
+            // subOnPub와 같이 subscriber 자체가 별도의 스레드에서 동작 하는 것이 아니라,
+            // 개별 data가 들어오는 부분 - (onNext, onError, onComplete등)을 별개의 스레드에서 실행한다.
+            pub.subscribe(new Subscriber<Integer>() {
+                ExecutorService es = Executors.newSingleThreadExecutor();
+                @Override
+                public void onSubscribe(Subscription subscription) {
+                    sub.onSubscribe(subscription);
+                }
+
+                @Override
+                public void onNext(Integer integer) {
+                    es.execute(() -> sub.onNext(integer));
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    es.execute(() -> sub.onError(throwable));
+                }
+
+                @Override
+                public void onComplete() {
+                    es.execute(() -> sub.onComplete());
+                }
+            });
+        };
+```
+data를 처리하는 onNext, onError, onComplete의 경우, 새로운 스레드에서 실행할 수 있다. 이는 결국 publishing 할 때에 별도의 스레드에서 실행하게 하는것이다. 
+
+FLUX
 ====
 Publisher의 구현체중 하나로서, 0 ~ N개의 데이터를 전송한다. 기존 Publisher와 동일하게 각 전달마다 onNext()를 발생시킨다. 
 Flux는 추상클래스로 정의되어 있다. 
