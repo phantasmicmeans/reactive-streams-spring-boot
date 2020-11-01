@@ -1,8 +1,11 @@
 package com.reactive.streams.demo.toby.duality;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class IterableOb {
     public void Iterable() {
@@ -39,6 +42,32 @@ public class IterableOb {
 
         for (Integer i : newIter) {   // for-each
             System.out.println("[NEW ITER] " + i);
+        }
+
+
+        Iterable<Integer> iterable = () -> {
+                return new Iterator<Integer>() {
+                    int start = 0;
+                    int MAX = 10;
+
+                    @Override
+                    public boolean hasNext() {
+                        return this.start < MAX;
+                    }
+
+                    @Override
+                    public Integer next() {
+                        return this.start++;
+                    }
+                };
+            };
+
+        for (Iterator<Integer> iterator = iterable.iterator(); iterator.hasNext();) {
+            System.out.println(iterator.next());
+        }
+
+        for (Integer i : iterable) { // 위와 동일
+            System.out.println(i);
         }
     }
 }
