@@ -1,6 +1,6 @@
-package com.reactive.streams.demo.test.publisher;
+package com.reactive.streams.demo.toby.test.publisher;
 
-import com.reactive.streams.demo.test.subscriber.TestSubscription;
+import com.reactive.streams.demo.toby.test.subscriber.TestSubscription;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
