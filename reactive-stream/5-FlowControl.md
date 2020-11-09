@@ -88,3 +88,11 @@ cancel() 메소드로 발행을 완전히 취소할 수도 있지만, 중요한 
 기본 메커니즘은 아래 다이어그램으로..
 
 <img src="https://user-images.githubusercontent.com/20153890/98534650-1ec59180-22c8-11eb-8979-4269e038b947.png" width=500>
+
+위 다이어그램은 Subscriber가 요청한 경우에만 새로운 데이터를 보내도록 보장한다. Publisher의 전체 구현은 순수 블록킹부터, Subscriber의 요청에 대해서만 데이터를 생성하는 위와 같은 메커니즘까지 다양하게 있다. 그러나 `큐`는 필요없다. 
+
+또한 순수 푸시모델과는 다르게 하이브리드 푸시-풀 모델도 지원한다.
+- 순수 푸시모델로 사용하고 싶은 경우는 Long.MAX_VALUE로 request요청을 행하면 된다.
+- 순수 풀 모델로 사용하고 싶은 경우는 Subscriber#onNext가 호출될 때 마다 request를 한개씩 요청하면 된다. 
+
+**결론은 Reactive Stream이 시스템 부하에 적절히 대응하는 방법, 즉 BackPressure 메커니즘의 근간은 Subscription이다.**
