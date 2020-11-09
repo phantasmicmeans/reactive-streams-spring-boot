@@ -44,3 +44,47 @@ But, 실제로 무제한의 리소스를 사용할 수 없으므로 메시지 �
 
 **Reactive Stream이 시스템 부하에 적절히 대응하는 방법, 즉 BackPressure 메커니즘의 중요성을 언급한 이유이다.**
 
+앞장에서 살펴봤듯이 Reactive Stream은 Publisher, Subscribe, Subscription, Processor 네가지 기본 인터페이스로 이루어져있다.
+Publisher-Subscriber는 Observable-Observer와 유사하다는 것도 앞장에서 설명했다.
+
+```java
+package org.reactivestreams;
+
+public interface Publisher<T> {
+    void subscribe(Subscriber<? super T> var1);
+}
+``` 
+
+```java
+package org.reactivestreams;
+
+public interface Subscriber<T> {
+    void onSubscribe(Subscription var1);
+
+    void onNext(T var1);
+
+    void onError(Throwable var1);
+
+    void onComplete();
+}
+```
+
+```java
+package org.reactivestreams;
+
+public interface Subscription {
+    void request(long var1);
+
+    void cancel();
+}
+```
+
+BackPressure 메커니즘을 설명하기 위해 다시 Subscriber의 명세를 보자. 앞장에서의 내용처럼 Subscription은 Publisher와 Subscriber 사이에서 데이터 생성을 제어하기 위한 기본적인 사항을 제공한다.
+
+cancel() 메소드로 발행을 완전히 취소할 수도 있지만, 중요한 개념은 단연코 `request(n)` 메소드이다. 
+이제 큐를 두지 않아도 된다. Subscriber는 request 메소드를 통해 Publisher가 보내주어야 하는 데이터의 크기를 결정한다. 
+즉, Publisher에서 유입되는 원소의 개수가 처리할 수 있는 제한을 초과하지 않음을 확신할 수 있게 되었다.
+
+기본 메커니즘은 아래 다이어그램으로..
+
+<img src="https://user-images.githubusercontent.com/20153890/98534650-1ec59180-22c8-11eb-8979-4269e038b947.png" width=500>
