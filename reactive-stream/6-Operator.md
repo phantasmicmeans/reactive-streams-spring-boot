@@ -7,7 +7,8 @@
 아래 코드는 3가지 operator를 거쳐 logSubscriber에게 데이터가 전달되는 과정을 나타낸다. 
 
 기본 개념은 아래와 같다. 
-- 대리 Subscriber를 사용하며 Subscription을 대리자에게 넘겨 진행한다.
+- 대리 Subscriber를 사용하여 subscriber를 연결한다. 
+- 초기 Publisher에서 정의한 Subscription을 대리자에게 넘겨 진행한다.
 
 ```java
 	private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
